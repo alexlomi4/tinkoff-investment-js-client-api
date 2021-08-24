@@ -1,4 +1,4 @@
-import 'isomorphic-fetch';
+import axios, {AxiosRequestConfig} from 'axios';
 import {
   CandleResolution,
   Candles,
@@ -19,32 +19,24 @@ import {
   UserAccounts,
 } from './domain';
 import {
-  CandleStreaming,
+  // CandleStreaming,
   Depth,
   HttpMethod,
   InstrumentId,
-  Interval,
-  OrderbookStreaming,
+  // Interval,
+  // OrderbookStreaming,
   FIGI,
-  InstrumentInfoStreaming,
-  InstrumentInfoStreamingMetaParams,
-  CandleStreamingMetaParams,
-  StreamingError,
+  // InstrumentInfoStreaming,
+  // InstrumentInfoStreamingMetaParams,
+  // CandleStreamingMetaParams,
+  // StreamingError,
 } from './types';
-import { URLSearchParams } from 'url';
-import Streaming from './Streaming';
+// import Streaming from './Streaming';
 
 export * from './types';
 export * from './domain';
 
 const omitUndef = (x: object) => JSON.parse(JSON.stringify(x));
-
-function getQueryString(params: Record<string, string | number>) {
-  // must be a number https://github.com/microsoft/TypeScript/issues/32951
-  const searchParams = new URLSearchParams(omitUndef(params) as any).toString();
-
-  return searchParams.length ? `?${searchParams}` : '';
-}
 
 type OpenApiConfig = {
   apiURL: string;
@@ -60,12 +52,12 @@ type RequestConfig<Q, B> = {
 };
 
 export default class OpenAPI {
-  private _streaming: Streaming;
+  // private _streaming: Streaming;
   private _sandboxCreated: boolean = false;
   private _currentBrokerAccountId: string | undefined = undefined;
   private readonly apiURL: string;
   private readonly secretToken: string;
-  private readonly authHeaders: any;
+  private readonly axiosInstance;
 
   /**
    *
@@ -75,53 +67,57 @@ export default class OpenAPI {
    * @param brokerAccountId номер счета (по умолчанию - Тинькофф)
    */
   constructor({ apiURL, socketURL, secretToken, brokerAccountId }: OpenApiConfig) {
-    this._streaming = new Streaming({ url: socketURL, secretToken });
+    // this._streaming = new Streaming({ url: socketURL, secretToken });
     this._currentBrokerAccountId = brokerAccountId;
     this.apiURL = apiURL;
     this.secretToken = secretToken;
-    this.authHeaders = {
-      Authorization: 'Bearer ' + this.secretToken,
-      'Content-Type': 'application/json',
-    };
+    this.axiosInstance = axios.create({
+      baseURL: this.apiURL,
+      headers: {
+        Authorization: `Bearer ${this.secretToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
   /**
    * Запрос к REST
    */
   private async makeRequest<Q, B, R>( url: string, { method = 'get', query, body }: RequestConfig<Q, B> = {}): Promise<R> {
-    let requestParams: Record<string, any> = { method, headers: this.authHeaders };
-    let requestUrl = this.apiURL + url + getQueryString(query || {});
+    let requestParams: AxiosRequestConfig = {
+      method,
+      url: url,
+      params: omitUndef(query || {}),
+    };
 
     if (method === 'post') {
-      requestParams.body = JSON.stringify(body);
+      requestParams.data = body;
     }
 
-    const res = await fetch(requestUrl, requestParams);
-
-    // XXX для консистентности ошибок от API
-    if (res.status === 401) {
-      throw {
-        status: 'Error',
-        message:
-          'Unauthorized! Try to use valid token. https://tinkoffcreditsystems.github.io/invest-openapi/auth/',
-      };
+    try {
+      const {data} = await this.axiosInstance.request(requestParams);
+      return data.payload;
+    } catch (error) {
+      if (error.response) {
+        const {response} = error;
+        // XXX для консистентности ошибок от API
+        if (response.status === 401) {
+          throw {
+            status: 'Error',
+            message:
+                'Unauthorized! Try to use valid token. https://tinkoffcreditsystems.github.io/invest-openapi/auth/',
+          };
+        }
+        if (response.status === 429) {
+          throw {
+            status: 'Error',
+            message:
+                'Too Many Requests!',
+          };
+        }
+      }
+      throw error;
     }
-
-    if (res.status === 429) {
-      throw {
-        status: 'Error',
-        message:
-          'Too Many Requests!',
-      };
-    }
-
-    if (!res.ok) {
-      throw await res.json();
-    }
-
-    const data = await res.json();
-
-    return data.payload;
   }
 
   /**
@@ -413,12 +409,12 @@ export default class OpenAPI {
    * @param cb функция для обработки новых данных по стакану
    * @return функция для отмены подписки
    */
-  orderbook(
-    { figi, depth = 3 }: { figi: string; depth?: Depth },
-    cb: (x: OrderbookStreaming) => any = console.log
-  ) {
-    return this._streaming.orderbook({ figi, depth }, cb);
-  }
+  // orderbook(
+  //   { figi, depth = 3 }: { figi: string; depth?: Depth },
+  //   cb: (x: OrderbookStreaming) => any = console.log
+  // ) {
+  //   return this._streaming.orderbook({ figi, depth }, cb);
+  // }
 
   /**
    * Метод для подписки на данные по свечному графику инструмента
@@ -428,12 +424,12 @@ export default class OpenAPI {
    * @param cb функция для обработки новых данных по свечи
    * @return функция для отмены подписки
    */
-  candle(
-    { figi, interval = '1min' }: { figi: string; interval?: Interval },
-    cb: (x: CandleStreaming, metaParams: CandleStreamingMetaParams) => any = console.log
-  ) {
-    return this._streaming.candle({ figi, interval }, cb);
-  }
+  // candle(
+  //   { figi, interval = '1min' }: { figi: string; interval?: Interval },
+  //   cb: (x: CandleStreaming, metaParams: CandleStreamingMetaParams) => any = console.log
+  // ) {
+  //   return this._streaming.candle({ figi, interval }, cb);
+  // }
 
   /**
    * Метод для подписки на данные по инструменту
@@ -442,9 +438,9 @@ export default class OpenAPI {
    * @param cb функция для обработки новых данных по инструменту
    * @return функция для отмены подписки
    */
-  instrumentInfo({ figi }: { figi: string }, cb: (x: InstrumentInfoStreaming, metaParams: InstrumentInfoStreamingMetaParams) => any = console.log) {
-    return this._streaming.instrumentInfo({ figi }, cb);
-  }
+  // instrumentInfo({ figi }: { figi: string }, cb: (x: InstrumentInfoStreaming, metaParams: InstrumentInfoStreamingMetaParams) => any = console.log) {
+  //   return this._streaming.instrumentInfo({ figi }, cb);
+  // }
 
 
   /**
@@ -458,9 +454,9 @@ export default class OpenAPI {
    * @param cb функция для обработки всех ошибок от стриминга
    * @return функция для отмены подписки
    */
-  onStreamingError(cb: (x: StreamingError, metaParams: InstrumentInfoStreamingMetaParams) => any) {
-    return this._streaming.onStreamingError(cb);
-  }
+  // onStreamingError(cb: (x: StreamingError, metaParams: InstrumentInfoStreamingMetaParams) => any) {
+  //   return this._streaming.onStreamingError(cb);
+  // }
 
   /**
    * Метод для получения брокерских счетов клиента
