@@ -7,4 +7,5 @@ changes:
   - node specific api is removed
 2. package.json
   - axios is added
+  - name of package
 3. README.md is updated

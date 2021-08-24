@@ -62,11 +62,10 @@ export default class OpenAPI {
   /**
    *
    * @param apiURL REST api url см [документацию](https://tinkoffcreditsystems.github.io/invest-openapi/env/)
-   * @param socketURL Streaming api url см [документацию](https://tinkoffcreditsystems.github.io/invest-openapi/env/)
    * @param secretToken токен доступа см [получение токена доступа](https://tinkoffcreditsystems.github.io/invest-openapi/auth/)
    * @param brokerAccountId номер счета (по умолчанию - Тинькофф)
    */
-  constructor({ apiURL, socketURL, secretToken, brokerAccountId }: OpenApiConfig) {
+  constructor({ apiURL, secretToken, brokerAccountId }: OpenApiConfig) {
     // this._streaming = new Streaming({ url: socketURL, secretToken });
     this._currentBrokerAccountId = brokerAccountId;
     this.apiURL = apiURL;
