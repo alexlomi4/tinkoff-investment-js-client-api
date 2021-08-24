@@ -4,6 +4,7 @@ SDK для работы с OpenAPI Тинькофф Инвестиции, кот
 
 `npm i https://github.com/alexlomi4/tinkoff-investment-js-client-api --save`
 
+Апи переделан из https://github.com/TinkoffCreditSystems/invest-openapi-js-sdk для использования не только в node environment.
 
 ## Документация
 
