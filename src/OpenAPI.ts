@@ -96,7 +96,7 @@ export default class OpenAPI {
     try {
       const {data} = await this.axiosInstance.request(requestParams);
       return data.payload;
-    } catch (error) {
+    } catch (error: any) {
       if (error.response) {
         const {response} = error;
         // XXX для консистентности ошибок от API
