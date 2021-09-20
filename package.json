@@ -1,7 +1,7 @@
 {
   "name": "tinkoff-investment-js-client-api",
   "version": "1.5.0",
-  "description": "Tinkoff Invest OpenAPI Client",
+  "description": "Tinkoff Invest OpenAPI Javascript Client",
   "main": "./build/OpenAPI.cjs.js",
   "module": "./build/OpenAPI.esm.js",
   "types": "./build/OpenAPI.d.ts",
